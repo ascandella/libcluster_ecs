@@ -125,10 +125,12 @@ defmodule ClusterECS.Strategy.Metadata do
       |> Enum.into(%{})
       |> Map.take([:access_key_id, :secret_access_key])
 
+    node_basename = Keyword.fetch!(config, :node_basename)
+
     with {:ok, task_arns} <- ECS.list_task_arns(region, cluster_arn, service_name, opts),
          other_task_arns <- Enum.reject(task_arns, &(&1 == current_task_arn)),
          {:ok, tasks} <- ECS.describe_task_arns(region, cluster_arn, other_task_arns, opts) do
-      nodes = for task <- tasks, do: :"app@#{ECS.hostname_from_task(region, task)}"
+      nodes = for task <- tasks, do: :"#{node_basename}@#{ECS.hostname_from_task(region, task)}"
 
       MapSet.new(nodes)
     else

@@ -23,10 +23,10 @@ defmodule LibclusterECS.MixProject do
 
   defp deps do
     [
-      {:excoveralls, "~> 0.0"},
+      {:excoveralls, "~> 0.0", only: :test, runtime: false},
       {:ex_aws, "~> 2.0"},
       {:ex_aws_ecs, "~> 0.0"},
-      {:faker, "~> 0.0"},
+      {:faker, "~> 0.0", only: :test, runtime: false},
       {:hackney, "~> 1.0"},
       {:jason, "~> 1.0"},
       {:libcluster, "~> 3.0"},
