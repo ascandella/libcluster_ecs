@@ -67,16 +67,19 @@ defmodule ClusterECS.ECS do
   @doc """
   See https://docs.aws.amazon.com/vpc/latest/userguide/vpc-dns.html#vpc-dns-hostnames
   """
-  @spec hostname_from_task(region(), task()) :: String.t()
+  @spec hostname_from_task(region(), task()) :: {:ok, String.t()} | {:error, any()}
   def hostname_from_task(region, %{containers: containers, task_arn: task_arn}) do
-    %{network_interfaces: [%{private_ipv4_address: ip} | _]} =
-      Enum.find(containers, &(&1.task_arn == task_arn))
+    case Enum.find(containers, &(&1.task_arn == task_arn)) do
+      %{network_interfaces: [%{private_ipv4_address: ip} | _]} ->
+        dashed_ip = String.replace(ip, ".", "-")
 
-    dashed_ip = String.replace(ip, ".", "-")
+        case region do
+          "us-east-1" -> {:ok, "ip-#{dashed_ip}.ec2.internal"}
+          region -> {:ok, "ip-#{dashed_ip}.#{region}.compute.internal"}
+        end
 
-    case region do
-      "us-east-1" -> "ip-#{dashed_ip}.ec2.internal"
-      region -> "ip-#{dashed_ip}.#{region}.compute.internal"
+      _ ->
+        {:error, "No network interfaces"}
     end
   end
 

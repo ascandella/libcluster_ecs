@@ -130,9 +130,25 @@ defmodule ClusterECS.Strategy.Metadata do
     with {:ok, task_arns} <- ECS.list_task_arns(region, cluster_arn, service_name, opts),
          other_task_arns <- Enum.reject(task_arns, &(&1 == current_task_arn)),
          {:ok, tasks} <- ECS.describe_task_arns(region, cluster_arn, other_task_arns, opts) do
-      nodes = for task <- tasks, do: :"#{node_basename}@#{ECS.hostname_from_task(region, task)}"
+      nodes =
+        for task <- tasks do
+          case ECS.hostname_from_task(region, task) do
+            {:ok, hostname} ->
+              :"#{node_basename}@#{hostname}"
 
-      MapSet.new(nodes)
+            {:error, err} ->
+              Cluster.Logger.info(
+                topology,
+                "No network interfaces found for task: #{inspect(err)}"
+              )
+
+              nil
+          end
+        end
+
+      nodes
+      |> Enum.reject(&is_nil/1)
+      |> MapSet.new()
     else
       {:error, _} = e ->
         Cluster.Logger.error(
